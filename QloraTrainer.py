@@ -43,7 +43,7 @@ class QloraTrainer:
             tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
         model.gradient_checkpointing_enable()
-        model = prepare_model_for_kbit_training(model)
+        # model = prepare_model_for_kbit_training(model)
 
         self.tokenizer = tokenizer
         self.base_model = model

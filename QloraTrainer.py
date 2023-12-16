@@ -2,8 +2,8 @@ import torch
 import transformers
 from datasets import load_dataset
 from datasets.dataset_dict import DatasetDict
-from peft import (LoraConfig, PeftModel, get_peft_model,
-                  prepare_model_for_kbit_training)
+# from peft import (LoraConfig, PeftModel, get_peft_model,
+#                   prepare_model_for_kbit_training)
 from transformers import (AutoModelForCausalLM, AutoTokenizer,
                           BitsAndBytesConfig, LlamaForCausalLM, LlamaTokenizer)
 
@@ -19,19 +19,23 @@ class QloraTrainer:
     def load_base_model(self):
         model_id = self.config["base_model"]
 
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16
-        )
+        # bnb_config = BitsAndBytesConfig(
+        #     load_in_4bit=True,
+        #     bnb_4bit_use_double_quant=True,
+        #     bnb_4bit_quant_type="nf4",
+        #     bnb_4bit_compute_dtype=torch.bfloat16
+        # )
 
         if "model_family" in self.config and self.config["model_family"] == "llama":
             tokenizer = LlamaTokenizer.from_pretrained(model_id)
-            model = LlamaForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"":0})
+            # model = LlamaForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"":0})
+            model = LlamaForCausalLM.from_pretrained(model_id, device_map={"":0})
+
         else:
             tokenizer = AutoTokenizer.from_pretrained(model_id)
-            model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"":0})
+            # model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"":0})
+            model = AutoModelForCausalLM.from_pretrained(model_id, device_map={"":0})
+
 
         if not tokenizer.pad_token:
             # Add padding token if missing, e.g. for llama tokenizer
@@ -46,22 +50,23 @@ class QloraTrainer:
 
     def load_adapter_model(self, adapter_path: str):
         """ Load pre-trained lora adapter """
-        self.adapter_model = PeftModel.from_pretrained(self.base_model, adapter_path)
+        # self.adapter_model = PeftModel.from_pretrained(self.base_model, adapter_path)
+        self.adapter_model = self.base_model
 
     def train(self):
         # Set up lora config or load pre-trained adapter
-        if self.adapter_model is None:
-            config = LoraConfig(
-                r=8,
-                lora_alpha=32,
-                target_modules=self.config["target_modules"],
-                lora_dropout=0.05,
-                bias="none",
-                task_type="CAUSAL_LM"
-            )
-            model = get_peft_model(self.base_model, config)
-        else:
-            model = self.adapter_model
+        # if self.adapter_model is None:
+        #     config = LoraConfig(
+        #         r=8,
+        #         lora_alpha=32,
+        #         target_modules=self.config["target_modules"],
+        #         lora_dropout=0.05,
+        #         bias="none",
+        #         task_type="CAUSAL_LM"
+        #     )
+        #     model = get_peft_model(self.base_model, config)
+        # else:
+        model = self.adapter_model
         self._print_trainable_parameters(model)
 
         print("Start data preprocessing")
@@ -105,7 +110,7 @@ class QloraTrainer:
             base_model = AutoModelForCausalLM.from_pretrained(model_id, device_map="cpu")
 
         adapter_save_path = f"{self.config['model_output_dir']}/{self.config['model_name']}_adapter"
-        model = PeftModel.from_pretrained(base_model, adapter_save_path)
+        model = AutoModelForCausalLM.from_pretrained(base_model, adapter_save_path)
 
         self.merged_model = model.merge_and_unload()  # note it's on CPU, don't run inference on it
 

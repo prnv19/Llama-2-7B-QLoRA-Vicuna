@@ -1,0 +1,12 @@
+model_name: abinayam/gpt-2-tamil
+base_model: abinayam/gpt-2-tamil
+model_family:  # if unspecified will use AutoModelForCausalLM/AutoTokenizer
+model_context_window: 512  # if unspecified will use tokenizer.model_max_length
+target_modules:  # modules for which to train lora adapters
+- q_proj
+- k_proj
+- v_proj
+dataset: abhinand/tamil-alpaca
+trainer_output_dir: trainer_outputs/
+model_output_dir: models/  # model saved in {model_output_dir}/{model_name}
+instruct: true  # train for instruct (true) or chat (false)
